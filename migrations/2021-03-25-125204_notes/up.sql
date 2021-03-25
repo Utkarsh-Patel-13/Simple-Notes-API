@@ -1,0 +1,8 @@
+-- Your SQL goes here
+CREATE TABLE notes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(50) NOT NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP default CURRENT_TIMESTAMP,
+    modified_on TIMESTAMP default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
