@@ -11,11 +11,36 @@ extern crate diesel;
 
 use rocket_contrib::json::{Json, JsonValue};
 
+use rocket::fairing::{Fairing, Info, Kind};
+use rocket::http::Header;
+use rocket::{Request, Response};
+
 pub mod database;
 pub mod models;
 pub mod schema;
 
 use models::Note;
+
+pub struct CORS();
+
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to requests",
+            kind: Kind::Response,
+        }
+    }
+
+    fn on_response(&self, request: &Request, response: &mut Response) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, GET, PATCH, DELETE",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
+}
 
 #[get("/")]
 fn get_all_note(conn: database::Connection) -> Json<JsonValue> {
@@ -58,6 +83,7 @@ fn delete_note(id: i32, conn: database::Connection) -> Json<JsonValue> {
 
 fn main() {
     rocket::ignite()
+        .attach(CORS())
         .manage(database::connect())
         .mount(
             "/api",
