@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
-use diesel;
 use diesel::prelude::*;
+use diesel::result::Error;
+use diesel::{self};
 use diesel::{mysql::MysqlConnection, QueryDsl, RunQueryDsl};
 
 use super::schema::notes;
@@ -30,18 +31,26 @@ impl Note {
             .load::<Note>(conn)
             .unwrap()
     }
-    pub fn read_single(id: i32, conn: &MysqlConnection) -> Note {
-        notes::table.find(id).first(conn).unwrap()
+    pub fn read_single(id: i32, conn: &MysqlConnection) -> Result<Note, Error> {
+        notes::table.find(id).first(conn)
     }
 
-    pub fn update(id: i32, note: Note, conn: &MysqlConnection) -> bool {
-        diesel::update(notes::table.find(id))
-            .set(&note)
-            .execute(conn)
-            .is_ok()
+    pub fn update(id: i32, note: Note, conn: &MysqlConnection) -> Result<usize, Error> {
+        let n: Result<Note, Error> = Note::read_single(id, &conn);
+
+        match n {
+            Ok(_) => diesel::update(notes::table.find(id))
+                .set(&note)
+                .execute(conn),
+            Err(e) => Err(e),
+        }
     }
 
-    pub fn delete(id: i32, conn: &MysqlConnection) -> bool {
-        diesel::delete(notes::table.find(id)).execute(conn).is_ok()
+    pub fn delete(id: i32, conn: &MysqlConnection) -> Result<bool, Error> {
+        let n: Result<Note, Error> = Note::read_single(id, &conn);
+        match n {
+            Ok(_) => Ok(diesel::delete(notes::table.find(id)).execute(conn).is_ok()),
+            Err(e) => Err(e),
+        }
     }
 }
