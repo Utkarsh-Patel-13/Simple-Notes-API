@@ -12,13 +12,9 @@ extern crate diesel;
 use database::Connection;
 use rocket_contrib::json::{Json, JsonValue};
 
-use rocket::http::Header;
-// use rocket::response::status;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    response::status::NotFound,
-};
-use rocket::{Request, Response};
+use rocket::http::Method;
+use rocket::response::status::NotFound;
+use rocket_cors::{AllowedOrigins, CorsOptions};
 
 pub mod database;
 pub mod models;
@@ -26,26 +22,26 @@ pub mod schema;
 
 use models::Note;
 
-pub struct CORS();
+// pub struct CORS();
 
-impl Fairing for CORS {
-    fn info(&self) -> Info {
-        Info {
-            name: "Add CORS headers to requests",
-            kind: Kind::Response,
-        }
-    }
+// impl Fairing for CORS {
+//     fn info(&self) -> Info {
+//         Info {
+//             name: "Add CORS headers to requests",
+//             kind: Kind::Response,
+//         }
+//     }
 
-    fn on_response(&self, _request: &Request, response: &mut Response) {
-        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-        response.set_header(Header::new(
-            "Access-Control-Allow-Methods",
-            "POST, GET, PATCH, DELETE",
-        ));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
-    }
-}
+//     fn on_response(&self, _request: &Request, response: &mut Response) {
+//         response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+//         response.set_header(Header::new(
+//             "Access-Control-Allow-Methods",
+//             "POST, GET, PUT, DELETE",
+//         ));
+//         response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+//         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+//     }
+// }
 
 #[get("/notes")]
 fn get_all_note(conn: Connection) -> Json<JsonValue> {
@@ -107,8 +103,18 @@ fn delete_note(id: i32, conn: Connection) -> Result<Json<JsonValue>, NotFound<Js
 }
 
 fn main() {
+    let cors = CorsOptions::default()
+        .allowed_origins(AllowedOrigins::all())
+        .allowed_methods(
+            vec![Method::Get, Method::Post, Method::Put, Method::Delete]
+                .into_iter()
+                .map(From::from)
+                .collect(),
+        )
+        .allow_credentials(true);
+
     rocket::ignite()
-        .attach(CORS())
+        .attach(cors.to_cors().unwrap())
         .manage(database::connect())
         .mount(
             "/api",
